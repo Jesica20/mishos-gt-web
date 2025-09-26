@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window", "dom"],
+    "types": ["jsr:@supabase/supabase-js@2"]
+  },
+   "imports": {}
+}

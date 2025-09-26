@@ -1,0 +1,55 @@
+project_id = "nbsitanwrlhgyzswgnnt"
+[functions.admin-users]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-users/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/admin-users/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/admin-users/*.html" ]
+
+[functions.admin-recommendations]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-recommendations/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/admin-recommendations/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/admin-recommendations/*.html" ]
+
+[functions.admin-gallery]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-gallery/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/admin-gallery/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/admin-gallery/*.html" ]
+
+[functions.admin-donations]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-donations/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/admin-donations/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/admin-donations/*.html" ]
+
+[functions.admin-campaigns]
+enabled = true
+verify_jwt = true
+import_map = "./functions/admin-campaigns/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/admin-campaigns/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/admin-campaigns/*.html" ]

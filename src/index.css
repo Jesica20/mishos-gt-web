@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Mishos GT - Warm animal shelter theme */
+    --background: 46 98% 98%;
+    --foreground: 38 25% 15%;
+
+    --card: 48 100% 99%;
+    --card-foreground: 38 25% 15%;
+
+    --popover: 48 100% 99%;
+    --popover-foreground: 38 25% 15%;
+
+    /* Warm orange primary color inspired by pet fur */
+    --primary: 229 95% 53%;
+    --primary-foreground: 48 100% 99%;
+
+    /* Soft peach secondary color */
+    --secondary: 43 74% 91%;
+    --secondary-foreground: 38 25% 15%;
+
+    --muted: 43 74% 91%;
+    --muted-foreground: 38 16.50% 30.59%;
+
+    /* Gentle yellow accent like sunshine */
+    --accent: 45 86% 83%;
+    --accent-foreground: 38 25% 15%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 48 100% 99%;
+
+    --border: 43 31% 88%;
+    --input: 43 31% 88%;
+    --ring: 25 95% 53%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar colors */
+    --sidebar-background: 46 98% 98%;
+    --sidebar-foreground: 38 25% 15%;
+    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary-foreground: 48 100% 99%;
+    --sidebar-accent: 43 74% 91%;
+    --sidebar-accent-foreground: 38 25% 15%;
+    --sidebar-border: 43 31% 88%;
+    --sidebar-ring: 25 95% 53%;
+
+    /* Pet-themed custom colors */
+    --warm-brown: 32 40% 45%;
+    --soft-cream: 46 85% 95%;
+    --gentle-green: 120 35% 75%;
+    --paw-blue: 200 40% 85%;
+    
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(229, 95%, 53%), hsl(191, 75%, 60%));
+    --gradient-soft: linear-gradient(180deg, hsl(46 98% 98%), hsl(43 74% 91%));
+    
+    /* Shadows */
+    --shadow-warm: 0 4px 12px hsl(25 95% 53% / 0.15);
+    --shadow-soft: 0 2px 8px hsl(38 25% 15% / 0.08);
+  }
+
+  .dark {
+    /* Dark mode with warm tones */
+    --background: 38 25% 8%;
+    --foreground: 46 85% 95%;
+
+    --card: 38 25% 10%;
+    --card-foreground: 46 85% 95%;
+
+    --popover: 38 25% 10%;
+    --popover-foreground: 46 85% 95%;
+
+    --primary: 229, 95%, 53%;
+    --primary-foreground: 38 25% 8%;
+
+    --secondary: 38 15% 15%;
+    --secondary-foreground: 46 85% 95%;
+
+    --muted: 38 15% 15%;
+    --muted-foreground: 38 15% 65%;
+
+    --accent: 38 15% 15%;
+    --accent-foreground: 46 85% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 46 85% 95%;
+
+    --border: 38 15% 15%;
+    --input: 38 15% 15%;
+    --ring: 25 95% 53%;
+    
+    --sidebar-background: 38 25% 8%;
+    --sidebar-foreground: 46 85% 95%;
+    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary-foreground: 38 25% 8%;
+    --sidebar-accent: 38 15% 15%;
+    --sidebar-accent-foreground: 46 85% 95%;
+    --sidebar-border: 38 15% 15%;
+    --sidebar-ring: 25 95% 53%;
+
+    /* Dark theme custom colors */
+    --warm-brown: 32 40% 65%;
+    --soft-cream: 46 85% 15%;
+    --gentle-green: 120 35% 45%;
+    --paw-blue: 200 40% 55%;
+    
+    /* Dark gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(25 95% 53%), hsl(43 74% 35%));
+    --gradient-soft: linear-gradient(180deg, hsl(38 25% 8%), hsl(38 15% 15%));
+    
+    /* Dark shadows */
+    --shadow-warm: 0 4px 12px hsl(25 95% 53% / 0.25);
+    --shadow-soft: 0 2px 8px hsl(0 0% 0% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: var(--gradient-warm);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .shadow-warm {
+    box-shadow: var(--shadow-warm);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .bg-gradient-warm {
+    background: var(--gradient-warm);
+  }
+  
+  .bg-gradient-soft {
+    background: var(--gradient-soft);
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-bounce-soft {
+    animation: bounce-soft 2s ease-in-out infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
