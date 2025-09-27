@@ -79,7 +79,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <Link
                 key={item.href}
                 to={item.href}
-                className={`flex flex-col items-center space-y-1 px-4 py-2 transition-all duration-200 ${
+                className={`flex flex-1 flex-col items-center justify-center space-y-1 py-2 transition-all duration-200 ${
                   isActive(item.href)
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
