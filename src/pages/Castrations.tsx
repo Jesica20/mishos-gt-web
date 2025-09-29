@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AppointmentModal } from '@/components/AppointmentModal';
 import { Gallery } from '@/components/Gallery';
+import { PreviewDialog } from '@/components/PreviewDialog';
 
 interface Campaign {
   id: string;
@@ -68,7 +69,6 @@ const Castrations = () => {
         ...campaign,
         appointments_count: countsMap.get(campaign.id) || 0
       })) || [];
-      
       setCampaigns(campaignsWithCount);
     } catch (error) {
       console.error('Error:', error);
@@ -120,7 +120,7 @@ const Castrations = () => {
           Jornadas de Castración
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Agenda una cita para la castración gratuita de tu mascota en nuestras jornadas programadas
+          Agenda una cita para la castración de tu mascota en nuestras jornadas programadas
         </p>
       </div>
 
@@ -140,10 +140,9 @@ const Castrations = () => {
           {campaigns.map((campaign, index) => {
             const isFullyBooked = campaign.appointments_count >= campaign.max_appointments;
             const availableSlots = campaign.max_appointments - campaign.appointments_count;
-            
             return (
-              <Card 
-                key={campaign.id} 
+              <Card
+                key={campaign.id}
                 className="shadow-soft hover:shadow-warm transition-all duration-300 animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
@@ -152,14 +151,13 @@ const Castrations = () => {
                     <CardTitle className="text-lg line-clamp-2">
                       {campaign.title}
                     </CardTitle>
-                    <Badge 
+                    <Badge
                       variant={isFullyBooked ? "destructive" : "secondary"}
                       className="ml-2 flex-shrink-0"
                     >
                       {isFullyBooked ? "Completo" : `${availableSlots} disponibles`}
                     </Badge>
                   </div>
-                  
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <MapPin className="w-4 h-4 mr-2" />
@@ -179,16 +177,30 @@ const Castrations = () => {
                     </div>
                   </div>
                 </CardHeader>
-                
                 <CardContent>
                   {/* Image */}
                   {campaign.image_url ? (
                     <div className="aspect-video mb-4 rounded-lg overflow-hidden bg-muted">
-                      <img
-                        src={campaign.image_url}
-                        alt={campaign.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                      <PreviewDialog
+                        url={campaign.image_url}
+                        title={campaign.title}
+                        isPDF={false}
+                        trigger={
+                          // Toda esta miniatura es clickable/touchable
+                          <button
+                            type="button"
+                            className="group w-full h-full relative cursor-zoom-in focus:outline-none"
+                            aria-label={`Ver imagen ${campaign.title}`}
+                          >
+                            <img
+                              src={campaign.image_url}
+                              alt={campaign.title}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-[1.01]"
+                            />
+                            {/* Overlay sutil para indicar que se puede abrir */}
+                            <div className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                          </button>
+                        }
                       />
                     </div>
                   ) : (
@@ -205,7 +217,7 @@ const Castrations = () => {
                   )}
 
                   {/* Action Button */}
-                  <Button 
+                  <Button
                     onClick={() => handleScheduleAppointment(campaign)}
                     disabled={isFullyBooked}
                     className="w-full bg-gradient-warm hover:opacity-90"
@@ -222,7 +234,6 @@ const Castrations = () => {
       {/* Information Section */}
       <div className="mt-16 p-8 bg-gradient-soft rounded-2xl">
         <h2 className="text-2xl font-bold mb-6 text-center">Preparación para la castración</h2>
-        
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-semibold mb-3">Requisitos importantes:</h3>
@@ -245,7 +256,6 @@ const Castrations = () => {
               </li>
             </ul>
           </div>
-          
           <div>
             <h3 className="text-lg font-semibold mb-3">¿Qué incluye el servicio?</h3>
             <ul className="space-y-2 text-muted-foreground">
@@ -281,7 +291,6 @@ const Castrations = () => {
             Fotos de nuestras jornadas de castración y el impacto positivo en la comunidad
           </p>
         </div>
-        
         <Gallery />
       </div>
 

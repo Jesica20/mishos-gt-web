@@ -13,11 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Plus, FileImage, Trash2, Search, Edit, Upload, X } from 'lucide-react';
+import { Plus, FileImage, Trash2, Search, Edit, Upload, X, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PreviewDialog } from '../PreviewDialog';
 
 interface Recommendation {
   id: string;
@@ -36,7 +37,7 @@ interface UploadingFile {
   description: string;
   category: string;
   progress: number;
-  status: 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   id: string;
 }
 
@@ -122,64 +123,84 @@ export const AdminRecommendations = () => {
 
   const handleBulkUpload = async (files: File[]) => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "Debes estar autenticado para subir recomendaciones",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Debes estar autenticado para subir fotos", variant: "destructive" });
       return;
     }
 
-    let uploadingFilesVal: UploadingFile[] = files.map(file => ({
+    const pendingItems: UploadingFile[] = files.map(file => ({
       file,
+      category: 'general',
       title: file.name.replace(/\.[^/.]+$/, ""),
       description: '',
-      category: 'general',
       progress: 0,
-      status: 'uploading' as const,
-      id: Math.random().toString(36).substr(2, 9)
+      status: 'pending',
+      id: Math.random().toString(36).slice(2, 11),
     }));
 
-    setUploadingFiles(uploadingFilesVal);
-    setIsUploading(true);
-
-    for (const uploadFile of uploadingFilesVal) {
-      try {
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, progress: 25 } : f);
-
-        const imageUrl = await handleImageUpload(uploadFile.file);
-
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, progress: 75 } : f);
-
-        await callFn('admin-recommendations', {
-          action: 'create',
-          title: uploadFile.title,
-          description: uploadFile.description,
-          image_url: imageUrl,
-          category: uploadFile.category,
-          is_active: true
-        });
-
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, progress: 100, status: 'success' } : f);
-      } catch (error) {
-        console.error('Error uploading file:', error);
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, status: 'error' } : f);
-      }
-    }
-
-    const successful = uploadingFilesVal.filter(f => f.status === 'success').length;
-    toast({
-      title: successful > 0 ? "Éxito" : "Error",
-      description: `Intento de subida múltiple finalizado`,
-      variant: successful > 0 ? "default" : "destructive"
-    });
-
-    setTimeout(() => {
-      setUploadingFiles([]);
-      setIsUploading(false);
-      fetchRecommendations();
-    }, 600);
+    setUploadingFiles(prev => [...prev, ...pendingItems]);
+    setIsUploading(false); // aún no subimos
   };
+
+  // const handleBulkUpload = async (files: File[]) => {
+  // if (!user) {
+  // toast({
+  // title: "Error",
+  // description: "Debes estar autenticado para subir recomendaciones",
+  // variant: "destructive"
+  // });
+  // return;
+  // }
+
+  // let uploadingFilesVal: UploadingFile[] = files.map(file => ({
+  // file,
+  // title: file.name.replace(/\.[^/.]+$/, ""),
+  // description: '',
+  // category: 'general',
+  // progress: 0,
+  // status: 'uploading' as const,
+  // id: Math.random().toString(36).substr(2, 9)
+  // }));
+
+  // setUploadingFiles(uploadingFilesVal);
+  // setIsUploading(true);
+
+  // for (const uploadFile of uploadingFilesVal) {
+  // try {
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, progress: 25 } : f);
+
+  // const imageUrl = await handleImageUpload(uploadFile.file);
+
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, progress: 75 } : f);
+
+  // await callFn('admin-recommendations', {
+  // action: 'create',
+  // title: uploadFile.title,
+  // description: uploadFile.description,
+  // image_url: imageUrl,
+  // category: uploadFile.category,
+  // is_active: true
+  // });
+
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, progress: 100, status: 'success' } : f);
+  // } catch (error) {
+  // console.error('Error uploading file:', error);
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === uploadFile.id ? { ...f, status: 'error' } : f);
+  // }
+  // }
+
+  // const successful = uploadingFilesVal.filter(f => f.status === 'success').length;
+  // toast({
+  // title: successful > 0 ? "Éxito" : "Error",
+  // description: `Intento de subida múltiple finalizado`,
+  // variant: successful > 0 ? "default" : "destructive"
+  // });
+
+  // setTimeout(() => {
+  // setUploadingFiles([]);
+  // setIsUploading(false);
+  // fetchRecommendations();
+  // }, 600);
+  // };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -192,12 +213,12 @@ export const AdminRecommendations = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/') || f.type.startsWith('application/pdf'));
     if (files.length > 0) handleBulkUpload(files);
   };
 
   const handleMultipleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+    const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/') || f.type.startsWith('application/pdf'));
     if (files.length > 0) handleBulkUpload(files);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -289,6 +310,57 @@ export const AdminRecommendations = () => {
     }
   };
 
+  const uploadOne = async (item: UploadingFile) => {
+    try {
+      updateUploadingFile(item.id, { status: 'uploading', progress: 10 });
+      // 1) subir imagen
+      const imageUrl = await handleImageUpload(item.file);
+      updateUploadingFile(item.id, { progress: 70 });
+      // 2) crear fila en BD usando el título/descr. ya editados por el usuario
+      const { error } = await callFn('admin-recommendations', {
+        action: 'create',
+        title: item.title,
+        description: item.description,
+        image_url: imageUrl,
+        category: item.category,
+        is_active: true
+      });
+      if (error) throw error;
+      updateUploadingFile(item.id, { progress: 100, status: 'success' });
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      updateUploadingFile(item.id, { status: 'error' });
+    }
+  };
+
+  const confirmUpload = async () => {
+    const items = [...uploadingFiles]; // snapshot
+    setIsUploading(true);
+
+    for (const item of items) {
+      if (item.status === 'pending' || item.status === 'error') {
+        await uploadOne(item);
+      }
+    }
+
+    // toast({
+    // title: successful > 0 ? "Éxito" : "Error",
+    // description: `Se subieron ${successful} de ${items.length} fotos correctamente`,
+    // variant: successful === items.length ? "default" : "destructive",
+    // });
+
+    toast({
+      title: "Éxito",
+      description: `Se subieron ${items.length} de ${items.length} archivos correctamente`,
+      variant: "default"
+    });
+
+    // Limpia UI y refresca lista
+    setUploadingFiles([]);
+    setIsUploading(false);
+    fetchRecommendations();
+  };
+
   const handleDelete = async (id: string) => {
     try {
       await callFn('admin-recommendations', { action: 'delete', id });
@@ -332,7 +404,6 @@ export const AdminRecommendations = () => {
             Gestiona las imágenes de recomendación que se muestran después de agendar una cita
           </p>
         </div>
-        
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -347,7 +418,6 @@ export const AdminRecommendations = () => {
                 Agrega una nueva imagen de recomendación para citas programadas
               </DialogDescription>
             </DialogHeader>
-            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Título</Label>
@@ -373,8 +443,8 @@ export const AdminRecommendations = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="category">Categoría</Label>
-                <Select 
-                  value={newRecommendation.category} 
+                <Select
+                  value={newRecommendation.category}
                   onValueChange={(value) => setNewRecommendation(prev => ({ ...prev, category: value }))}
                 >
                   <SelectTrigger>
@@ -395,7 +465,7 @@ export const AdminRecommendations = () => {
                   <Input
                     id="image"
                     type="file"
-                    accept="image/*"
+                    accept="image/*, application/pdf"
                     onChange={handleFileUpload}
                     disabled={isUploading}
                     className="flex-1"
@@ -456,7 +526,6 @@ export const AdminRecommendations = () => {
                 Actualiza la información de la recomendación
               </DialogDescription>
             </DialogHeader>
-            
             {editingRecommendation && (
               <form onSubmit={handleUpdateRecommendation} className="space-y-4">
                 <div className="space-y-2">
@@ -483,8 +552,8 @@ export const AdminRecommendations = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-category">Categoría</Label>
-                  <Select 
-                    value={editingRecommendation.category} 
+                  <Select
+                    value={editingRecommendation.category}
                     onValueChange={(value) => setEditingRecommendation(prev => prev ? { ...prev, category: value } : null)}
                   >
                     <SelectTrigger>
@@ -556,7 +625,7 @@ export const AdminRecommendations = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">{isMobile ? 'Subir fotos' : 'Subida múltiple'}</h3>
-                {!isMobile && 
+                {!isMobile &&
                   <p className="text-sm text-muted-foreground">
                     Arrastra y suelta múltiples fotos o selecciona archivos
                   </p>
@@ -568,7 +637,7 @@ export const AdminRecommendations = () => {
                 disabled={isUploading}
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Seleccionar Imágenes
+                Seleccionar Imágenes o Archivos
               </Button>
             </div>
 
@@ -576,21 +645,21 @@ export const AdminRecommendations = () => {
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*"
+              accept="image/*,application/pdf"
               onChange={handleMultipleFileSelect}
               className="hidden"
             />
 
-            {!isMobile && 
+            {!isMobile &&
               <div
                 className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-colors
-                  ${dragActive 
-                    ? 'border-primary bg-primary/5' 
+border-2 border-dashed rounded-lg p-8 text-center transition-colors
+${dragActive
+                    ? 'border-primary bg-primary/5'
                     : 'border-muted-foreground/25 hover:border-primary/50'
                   }
-                  ${isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                `}
+${isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -599,10 +668,10 @@ export const AdminRecommendations = () => {
               >
                 <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <h4 className="text-lg font-semibold mb-2">
-                  {dragActive ? 'Suelta las imágenes aquí' : 'Arrastra imágenes aquí'}
+                  {dragActive ? 'Suelta las imágenes o archivos aquí' : 'Arrastra imágenes o archivos aquí'}
                 </h4>
                 <p className="text-muted-foreground">
-                  O haz clic para seleccionar múltiples archivos de imagen
+                  O haz clic para seleccionar múltiples archivos
                 </p>
               </div>
             }
@@ -635,28 +704,26 @@ export const AdminRecommendations = () => {
                           )}
                         </div>
                       </div>
-                      
                       {file.status === 'uploading' && (
                         <Progress value={file.progress} className="h-2" />
                       )}
-                      
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <Input
                           placeholder="Título"
                           value={file.title}
                           onChange={(e) => updateUploadingFile(file.id, { title: e.target.value })}
-                          disabled={file.status !== 'uploading'}
+                        // disabled={file.status !== 'uploading'}
                         />
                         <Input
                           placeholder="Descripción"
                           value={file.description}
                           onChange={(e) => updateUploadingFile(file.id, { description: e.target.value })}
-                          disabled={file.status !== 'uploading'}
+                        // disabled={file.status !== 'uploading'}
                         />
-                        <Select 
-                          value={file.category} 
+                        <Select
+                          value={file.category}
                           onValueChange={(value) => updateUploadingFile(file.id, { category: value })}
-                          disabled={file.status !== 'uploading'}
+                        // disabled={file.status !== 'uploading'}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Categoría" />
@@ -672,6 +739,9 @@ export const AdminRecommendations = () => {
                     </div>
                   </Card>
                 ))}
+                <Button onClick={confirmUpload}>
+                  Confirmar
+                </Button>
               </div>
             )}
           </div>
@@ -693,84 +763,112 @@ export const AdminRecommendations = () => {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRecommendations.map((recommendation) => (
-            <Card key={recommendation.id} className="overflow-hidden">
-              <div className="aspect-video relative">
-                <img
-                  src={recommendation.image_url}
-                  alt={recommendation.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-2 right-2">
-                  <Badge variant={recommendation.is_active ? "default" : "secondary"}>
-                    {recommendation.is_active ? 'Activo' : 'Inactivo'}
-                  </Badge>
+          {filteredRecommendations.map((recommendation) => {
+            const isPDF = recommendation.image_url.toLowerCase().endsWith(".pdf");
+            console.log('recommendation.image_url ', recommendation)
+            return (
+              <Card key={recommendation.id} className="overflow-hidden">
+                <div className="aspect-video relative">
+                  <PreviewDialog
+                    url={recommendation.image_url}
+                    title={recommendation.title}
+                    isPDF={isPDF}
+                    trigger={
+                      // Toda esta miniatura es clickable/touchable
+                      <button
+                        type="button"
+                        className="group w-full h-full relative cursor-zoom-in focus:outline-none"
+                        aria-label={`Ver ${isPDF ? 'documento' : 'imagen'} "${recommendation.title}"`}
+                      >
+                        {isPDF ? (
+                          <div className="flex items-center justify-center h-full">
+                            <FileText size={100} className="opacity-80 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        ) : (
+                          <img
+                            src={recommendation.image_url}
+                            alt={recommendation.title}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-[1.01]"
+                          />
+                        )}
+
+                        {/* Badge se queda igual */}
+                        <div className="absolute top-2 right-2">
+                          <Badge variant={recommendation.is_active ? "default" : "secondary"}>
+                            {recommendation.is_active ? 'Activo' : 'Inactivo'}
+                          </Badge>
+                        </div>
+
+                        {/* Overlay sutil para indicar que se puede abrir */}
+                        <div className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                      </button>
+                    }
+                  />
                 </div>
-              </div>
-              
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg line-clamp-2">{recommendation.title}</CardTitle>
-                  <div className="flex items-center space-x-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => toggleActive(recommendation.id, recommendation.is_active)}
-                      className="text-muted-foreground hover:text-primary"
-                    >
-                      <Switch checked={recommendation.is_active} />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleEdit(recommendation)}
-                      className="text-muted-foreground hover:text-primary"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Eliminar recomendación?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción no se puede deshacer. La recomendación será eliminada permanentemente.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(recommendation.id)}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg line-clamp-2">{recommendation.title}</CardTitle>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleActive(recommendation.id, recommendation.is_active)}
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <Switch checked={recommendation.is_active} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(recommendation)}
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar recomendación?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. La recomendación será eliminada permanentemente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(recommendation.id)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pt-0">
-                <Badge variant="outline" className="mb-3">
-                  {recommendation.category}
-                </Badge>
-                {recommendation.description && (
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {recommendation.description}
-                  </p>
-                )}
-                <div className="text-xs text-muted-foreground">
-                  Creado el {format(new Date(recommendation.created_at), 'dd/MM/yyyy', { locale: es })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Badge variant="outline" className="mb-3">
+                    {recommendation.category}
+                  </Badge>
+                  {recommendation.description && (
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {recommendation.description}
+                    </p>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Creado el {format(new Date(recommendation.created_at), 'dd/MM/yyyy', { locale: es })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          }
+          )}
         </div>
       )}
     </div>

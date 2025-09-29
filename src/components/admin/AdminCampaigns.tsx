@@ -299,7 +299,9 @@ export const AdminCampaigns = () => {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-ES', {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

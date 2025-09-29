@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { callFn } from '@/lib/callFn';
+import { PreviewDialog } from '../PreviewDialog';
 
 interface GalleryPhoto {
   id: string;
@@ -31,7 +32,7 @@ interface UploadingFile {
   title: string;
   description: string;
   progress: number;
-  status: 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   id: string;
 }
 
@@ -111,71 +112,90 @@ export const AdminGallery = () => {
     return data.publicUrl;
   };
 
+  // const handleBulkUpload = async (files: File[]) => {
+  // if (!user) {
+  // toast({
+  // title: "Error",
+  // description: "Debes estar autenticado para subir fotos",
+  // variant: "destructive"
+  // });
+  // return;
+  // }
+
+  // let uploadingFilesVal: UploadingFile[] = files.map(file => ({
+  // file,
+  // title: file.name.replace(/\.[^/.]+$/, ""),
+  // description: '',
+  // progress: 0,
+  // status: 'uploading',
+  // id: Math.random().toString(36).substr(2, 9)
+  // }));
+
+  // setUploadingFiles(uploadingFilesVal);
+  // setIsUploading(true);
+
+  // for (let i = 0; i < uploadingFilesVal.length; i++) {
+  // const item = uploadingFilesVal[i];
+  // try {
+  // // 25%
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, progress: 25 } : f);
+  // setUploadingFiles(uploadingFilesVal);
+
+  // // subir imagen
+  // const imageUrl = await handleImageUpload(item.file);
+
+  // // 75%
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, progress: 75 } : f);
+  // setUploadingFiles(uploadingFilesVal);
+
+  // // crear fila (Edge Function)
+  // const { error } = await callFn(
+  // 'admin-gallery',
+  // { action: 'create', title: item.title, description: item.description, image_url: imageUrl }
+  // );
+  // if (error) throw error;
+
+  // // 100%
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, progress: 100, status: 'success' } : f);
+  // setUploadingFiles(uploadingFilesVal);
+  // } catch (err) {
+  // console.error('Error uploading file:', err);
+  // uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, status: 'error' } : f);
+  // setUploadingFiles(uploadingFilesVal);
+  // }
+  // }
+
+  // const successful = uploadingFilesVal.filter(f => f.status === 'success').length;
+  // toast({
+  // title: successful > 0 ? "Éxito" : "Error",
+  // description: `Se subieron ${successful} de ${files.length} fotos correctamente`,
+  // variant: successful === files.length ? "default" : "destructive"
+  // });
+
+  // // setTimeout(() => {
+  // // setUploadingFiles([]);
+  // // setIsUploading(false);
+  // // fetchPhotos();
+  // // }, 800);
+  // };
+
   const handleBulkUpload = async (files: File[]) => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "Debes estar autenticado para subir fotos",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Debes estar autenticado para subir fotos", variant: "destructive" });
       return;
     }
 
-    let uploadingFilesVal: UploadingFile[] = files.map(file => ({
+    const pendingItems: UploadingFile[] = files.map(file => ({
       file,
       title: file.name.replace(/\.[^/.]+$/, ""),
       description: '',
       progress: 0,
-      status: 'uploading',
-      id: Math.random().toString(36).substr(2, 9)
+      status: 'pending',
+      id: Math.random().toString(36).slice(2, 11),
     }));
 
-    setUploadingFiles(uploadingFilesVal);
-    setIsUploading(true);
-
-    for (let i = 0; i < uploadingFilesVal.length; i++) {
-      const item = uploadingFilesVal[i];
-      try {
-        // 25%
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, progress: 25 } : f);
-        setUploadingFiles(uploadingFilesVal);
-
-        // subir imagen
-        const imageUrl = await handleImageUpload(item.file);
-
-        // 75%
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, progress: 75 } : f);
-        setUploadingFiles(uploadingFilesVal);
-
-        // crear fila (Edge Function)
-        const { error } = await callFn(
-          'admin-gallery',
-          { action: 'create', title: item.title, description: item.description, image_url: imageUrl }
-        );
-        if (error) throw error;
-
-        // 100%
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, progress: 100, status: 'success' } : f);
-        setUploadingFiles(uploadingFilesVal);
-      } catch (err) {
-        console.error('Error uploading file:', err);
-        uploadingFilesVal = uploadingFilesVal.map(f => f.id === item.id ? { ...f, status: 'error' } : f);
-        setUploadingFiles(uploadingFilesVal);
-      }
-    }
-
-    const successful = uploadingFilesVal.filter(f => f.status === 'success').length;
-    toast({
-      title: successful > 0 ? "Éxito" : "Error",
-      description: `Se subieron ${successful} de ${files.length} fotos correctamente`,
-      variant: successful === files.length ? "default" : "destructive"
-    });
-
-    setTimeout(() => {
-      setUploadingFiles([]);
-      setIsUploading(false);
-      fetchPhotos();
-    }, 800);
+    setUploadingFiles(prev => [...prev, ...pendingItems]);
+    setIsUploading(false); // aún no subimos
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -274,6 +294,58 @@ export const AdminGallery = () => {
     setIsEditDialogOpen(true);
   };
 
+  const uploadOne = async (item: UploadingFile) => {
+    try {
+      updateUploadingFile(item.id, { status: 'uploading', progress: 10 });
+
+      // 1) subir imagen
+      const imageUrl = await handleImageUpload(item.file);
+      updateUploadingFile(item.id, { progress: 70 });
+
+      // 2) crear fila en BD usando el título/descr. ya editados por el usuario
+      const { error } = await callFn('admin-gallery', {
+        action: 'create',
+        title: item.title,
+        description: item.description,
+        image_url: imageUrl,
+      });
+      if (error) throw error;
+
+      updateUploadingFile(item.id, { progress: 100, status: 'success' });
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      updateUploadingFile(item.id, { status: 'error' });
+    }
+  };
+
+  const confirmUpload = async () => {
+    const items = [...uploadingFiles]; // snapshot
+    setIsUploading(true);
+
+    for (const item of items) {
+      if (item.status === 'pending' || item.status === 'error') {
+        await uploadOne(item);
+      }
+    }
+
+    // toast({
+    // title: successful > 0 ? "Éxito" : "Error",
+    // description: `Se subieron ${successful} de ${items.length} fotos correctamente`,
+    // variant: successful === items.length ? "default" : "destructive",
+    // });
+
+    toast({
+      title: "Éxito",
+      description: `Se subieron ${items.length} de ${items.length} fotos correctamente`,
+      variant: "default"
+    });
+
+    // Limpia UI y refresca lista
+    setUploadingFiles([]);
+    setIsUploading(false);
+    fetchPhotos();
+  };
+
   const handleUpdatePhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPhoto || !user) {
@@ -324,7 +396,6 @@ export const AdminGallery = () => {
             Gestiona las fotos que aparecen en la galería de castraciones
           </p>
         </div>
-        
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -339,7 +410,6 @@ export const AdminGallery = () => {
                 Agrega una nueva foto a la galería de castraciones
               </DialogDescription>
             </DialogHeader>
-            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Título</Label>
@@ -409,7 +479,6 @@ export const AdminGallery = () => {
                 Actualiza el título y descripción de la foto
               </DialogDescription>
             </DialogHeader>
-            
             {editingPhoto && (
               <form onSubmit={handleUpdatePhoto} className="space-y-4">
                 <div className="space-y-2">
@@ -428,7 +497,10 @@ export const AdminGallery = () => {
                   <Textarea
                     id="edit-description"
                     value={editingPhoto.description || ''}
-                    onChange={(e) => setEditingPhoto(prev => prev ? { ...prev, description: e.target.value } : null)}
+                    onChange={async (e) => {
+                      setEditingPhoto(prev => prev ? { ...prev, description: e.target.value } : null);
+                      await handleUpdatePhoto(editingPhoto)
+                    }}
                     placeholder="Descripción de la foto"
                     rows={3}
                   />
@@ -482,7 +554,7 @@ export const AdminGallery = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">{isMobile ? 'Subir fotos' : 'Subida múltiple'}</h3>
-                {!isMobile && 
+                {!isMobile &&
                   <p className="text-sm text-muted-foreground">
                     Arrastra y suelta múltiples fotos o selecciona archivos
                   </p>
@@ -510,10 +582,10 @@ export const AdminGallery = () => {
             {!isMobile &&
               <div
                 className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-colors
-                  ${dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}
-                  ${isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                `}
+border-2 border-dashed rounded-lg p-8 text-center transition-colors
+${dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}
+${isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -554,20 +626,24 @@ export const AdminGallery = () => {
                             value={file.title}
                             onChange={(e) => updateUploadingFile(file.id, { title: e.target.value })}
                             className="flex-1"
-                            disabled={file.status !== 'uploading'}
+                          // disabled={file.status !== 'uploading'}
                           />
                           <Input
                             placeholder="Descripción (opcional)"
                             value={file.description}
                             onChange={(e) => updateUploadingFile(file.id, { description: e.target.value })}
                             className="flex-1"
-                            disabled={file.status !== 'uploading'}
+                          // disabled={file.status !== 'uploading'}
                           />
                         </div>
                       </div>
                     </div>
                   </Card>
+
                 ))}
+                <Button onClick={confirmUpload}>
+                  Confirmar
+                </Button>
               </div>
             )}
           </div>
@@ -592,7 +668,28 @@ export const AdminGallery = () => {
           {filteredPhotos.map((photo) => (
             <Card key={photo.id} className="overflow-hidden">
               <div className="aspect-video relative">
-                <img src={photo.image_url} alt={photo.title} className="w-full h-full object-cover" />
+                <PreviewDialog
+                  url={photo.image_url}
+                  title={photo.title}
+                  isPDF={false}
+                  trigger={
+                    // Toda esta miniatura es clickable/touchable
+                    <button
+                      type="button"
+                      className="group w-full h-full relative cursor-zoom-in focus:outline-none"
+                      aria-label={`Ver imagen ${photo.title}`}
+                    >
+                      <img
+                        src={photo.image_url}
+                        alt={photo.title}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-[1.01]"
+                      />
+
+                      {/* Overlay sutil para indicar que se puede abrir */}
+                      <div className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                    </button>
+                  }
+                />
               </div>
               <CardHeader>
                 <div className="flex items-start justify-between">
