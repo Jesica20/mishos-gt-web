@@ -90,7 +90,7 @@ const Home = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Agenda una cita para la castración de tu mascota en nuestras jornadas gratuitas organizadas en diferentes ubicaciones.
+                  Agenda una cita para la castración de tu mascota en nuestras jornadas organizadas en diferentes ubicaciones.
                 </p>
                 <Link to="/castrations">
                   <Button variant="outline" className="w-full">

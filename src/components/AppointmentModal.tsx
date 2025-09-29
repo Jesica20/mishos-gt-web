@@ -11,10 +11,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { toast } from '@/hooks/use-toast';
-import { Calendar, Clock, PawPrint, Download, X, ChevronDown, Check } from 'lucide-react';
+import { Calendar, Clock, PawPrint, Download, X, ChevronDown, Check, FileText, Badge } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { PreviewDialog } from './PreviewDialog';
 
 const DOG_BREEDS = [
   "Mestizo",
@@ -77,7 +78,6 @@ interface FormData {
   pet_allergies: string;
   medical_complications: string;
   vaccinations: string;
-  
   // Owner information
   owner_first_name: string;
   owner_last_name: string;
@@ -142,22 +142,18 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
         try {
           const response = await fetch(recommendation.image_url);
           const blob = await response.blob();
-          
           // Extract filename from URL or create one based on title
           const urlParts = recommendation.image_url.split('/');
           const originalFilename = urlParts[urlParts.length - 1];
-          const extension = originalFilename.includes('.') ? 
+          const extension = originalFilename.includes('.') ?
             originalFilename.split('.').pop() : 'jpg';
-          
           const filename = `${recommendation.title.toLowerCase().replace(/\s+/g, '-')}.${extension}`;
-          
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
           a.download = filename;
           a.click();
           URL.revokeObjectURL(url);
-          
           // Small delay between downloads
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
@@ -176,20 +172,20 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
   };
 
   /**
-   * Guatemala DPI / CUI validator
-   *
-   * Rules implemented:
-   * 1) Exact length: 13 numeric characters.
-   * 2) Structure: AAAAAAAA V DD MM
-   *    - A (8): random/assigned digits by RENAP
-   *    - V (1): check digit (mod-11 on the first 8 digits, weights 2..9)
-   *    - DD (2): department code (01..22)
-   *    - MM (2): municipality code (01..max per department)
-   * 3) Department & municipality must exist (per official GT 22/340 division).
-   *
-   * @param {string} input - DPI/CUI as string (can include spaces/dashes; they'll be stripped).
-   * @returns {{ valid: boolean, reason?: string }}
-   */
+  * Guatemala DPI / CUI validator
+  *
+  * Rules implemented:
+  * 1) Exact length: 13 numeric characters.
+  * 2) Structure: AAAAAAAA V DD MM
+  * - A (8): random/assigned digits by RENAP
+  * - V (1): check digit (mod-11 on the first 8 digits, weights 2..9)
+  * - DD (2): department code (01..22)
+  * - MM (2): municipality code (01..max per department)
+  * 3) Department & municipality must exist (per official GT 22/340 division).
+  *
+  * @param {string} input - DPI/CUI as string (can include spaces/dashes; they'll be stripped).
+  * @returns {{ valid: boolean, reason?: string }}
+  */
   const validateGuatemalaDPI = (input: string) => {
     // 1) Sanitize: keep only digits
     const cui = String(input).replace(/\D+/g, '');
@@ -199,8 +195,8 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
     }
 
     // Split parts
-    const core = cui.slice(0, 8);          // first 8 digits (assigned)
-    const dv   = Number(cui.slice(8, 9));  // check digit
+    const core = cui.slice(0, 8); // first 8 digits (assigned)
+    const dv = Number(cui.slice(8, 9)); // check digit
     const dept = Number(cui.slice(9, 11)); // department
     const muni = Number(cui.slice(11, 13));// municipality
 
@@ -215,32 +211,32 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
     const MUNICIPALITIES_PER_DEPT = [
       null, // pad to make it 1-based
       17, // 01 Guatemala
-      8,  // 02 El Progreso
+      8, // 02 El Progreso
       16, // 03 Sacatepéquez
       16, // 04 Chimaltenango
       13, // 05 Escuintla
       14, // 06 Santa Rosa
       19, // 07 Sololá
-      8,  // 08 Totonicapán
+      8, // 08 Totonicapán
       24, // 09 Quetzaltenango
       21, // 10 Suchitepéquez
-      9,  // 11 Retalhuleu
+      9, // 11 Retalhuleu
       30, // 12 San Marcos
       32, // 13 Huehuetenango
       21, // 14 Quiché
-      8,  // 15 Baja Verapaz
+      8, // 15 Baja Verapaz
       17, // 16 Alta Verapaz
       14, // 17 Petén
-      5,  // 18 Izabal
+      5, // 18 Izabal
       11, // 19 Zacapa
       11, // 20 Chiquimula
-      7,  // 21 Jalapa
-      17  // 22 Jutiapa
+      7, // 21 Jalapa
+      17 // 22 Jutiapa
     ];
 
     const muniMax = MUNICIPALITIES_PER_DEPT[dept];
     if (muni < 1 || muni > muniMax) {
-      return { valid: false, reason: `Municipio inválido para el departamento ${String(dept).padStart(2,'0')} (1–${muniMax})` };
+      return { valid: false, reason: `Municipio inválido para el departamento ${String(dept).padStart(2, '0')} (1–${muniMax})` };
     }
 
     // 4) Check digit: modulo 11 on first 8 digits, weights 2..9 (left to right)
@@ -257,7 +253,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
 
   const validateForm = () => {
     const requiredFields = ['pet_name', 'pet_size', 'owner_first_name', 'owner_last_name', 'owner_age', 'owner_id'];
-    
     for (const field of requiredFields) {
       console.log('formData[field as keyof FormData] ', formData[field as keyof FormData])
       if (!formData[field as keyof FormData]) {
@@ -296,7 +291,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       return;
     }
@@ -311,7 +305,7 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
         pet_size: formData.pet_size,
         pet_weight: formData.pet_weight ? parseFloat(formData.pet_weight) : null,
         pet_breed: formData.pet_breed || null,
-        pet_age: formData.pet_age_years || formData.pet_age_months ? 
+        pet_age: formData.pet_age_years || formData.pet_age_months ?
           (parseInt(formData.pet_age_years || '0') * 12) + parseInt(formData.pet_age_months || '0')
           : null,
         pet_allergies: formData.pet_allergies || null,
@@ -365,7 +359,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
               ¡Cita confirmada exitosamente!
             </DialogTitle>
           </DialogHeader>
-          
           <div className="space-y-6">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <h3 className="font-semibold text-green-800 mb-2">Detalles de tu cita:</h3>
@@ -387,27 +380,59 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
 
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h3 className="font-semibold text-blue-800 mb-4">Recomendaciones de cuidado</h3>
-              
               {recommendations.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {recommendations.map((rec) => (
-                    <div key={rec.id} className="bg-white p-3 rounded-lg border">
-                      <div className="aspect-square mb-3 overflow-hidden rounded-md">
-                        <img
-                          src={rec.image_url}
-                          alt={rec.title}
-                          className="w-full h-full object-cover"
-                        />
+                  {recommendations.map((rec) => {
+                    const isPDF = rec.image_url.toLowerCase().endsWith(".pdf");
+                    return (
+                      <div key={rec.id} className="bg-white p-3 rounded-lg border">
+                        <div className="aspect-square mb-3 overflow-hidden rounded-md">
+                          <PreviewDialog
+                            url={rec.image_url}
+                            title={rec.title}
+                            isPDF={isPDF}
+                            trigger={
+                              // Toda esta miniatura es clickable/touchable
+                              <button
+                                type="button"
+                                className="group w-full h-full relative cursor-zoom-in focus:outline-none"
+                                aria-label={`Ver ${isPDF ? 'documento' : 'imagen'} "${rec.title}"`}
+                              >
+                                {isPDF ? (
+                                  <div className="flex items-center justify-center h-full">
+                                    <FileText size={100} className="opacity-80 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                ) : (
+                                  <img
+                                    src={rec.image_url}
+                                    alt={rec.title}
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-[1.01]"
+                                  />
+                                )}
+
+                                {/* Badge se queda igual */}
+                                <div className="absolute top-2 right-2">
+                                  <Badge variant={rec?.is_active ? "default" : "secondary"}>
+                                    {rec?.is_active ? 'Activo' : 'Inactivo'}
+                                  </Badge>
+                                </div>
+
+                                {/* Overlay sutil para indicar que se puede abrir */}
+                                <div className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                              </button>
+                            }
+                          />
+                        </div>
+                        <h4 className="font-medium text-blue-800 mb-1">{rec.title}</h4>
+                        <p className="text-xs text-blue-600 mb-2 bg-blue-100 px-2 py-1 rounded">
+                          {rec.category}
+                        </p>
+                        {rec.description && (
+                          <p className="text-sm text-blue-700">{rec.description}</p>
+                        )}
                       </div>
-                      <h4 className="font-medium text-blue-800 mb-1">{rec.title}</h4>
-                      <p className="text-xs text-blue-600 mb-2 bg-blue-100 px-2 py-1 rounded">
-                        {rec.category}
-                      </p>
-                      {rec.description && (
-                        <p className="text-sm text-blue-700">{rec.description}</p>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-blue-700">No hay recomendaciones disponibles en este momento.</p>
@@ -474,7 +499,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
           {/* Pet Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">Información de la mascota</h3>
-            
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="pet_name">Nombre de la mascota *</Label>
@@ -486,7 +510,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   required
                 />
               </div>
-              
               <div>
                 <Label htmlFor="pet_size">Talla *</Label>
                 <Select value={formData.pet_size} onValueChange={(value) => handleInputChange('pet_size', value)}>
@@ -500,7 +523,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   </SelectContent>
                 </Select>
               </div>
-              
               <div>
                 <Label htmlFor="pet_weight">Peso (lb)</Label>
                 <Input
@@ -514,7 +536,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   placeholder="Peso en libras"
                 />
               </div>
-              
               <div>
                 <Label htmlFor="pet_breed">Raza</Label>
                 <Popover>
@@ -557,7 +578,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   </PopoverContent>
                 </Popover>
               </div>
-              
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label htmlFor="pet_age_years">Años</Label>
@@ -586,7 +606,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                 </div>
               </div>
             </div>
-            
             <div>
               <Label htmlFor="pet_allergies">Alergias</Label>
               <Textarea
@@ -597,7 +616,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                 rows={2}
               />
             </div>
-            
             <div>
               <Label htmlFor="medical_complications">Complicación médica</Label>
               <Textarea
@@ -608,7 +626,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                 rows={2}
               />
             </div>
-            
             <div>
               <Label htmlFor="vaccinations">Vacunas</Label>
               <Textarea
@@ -624,7 +641,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
           {/* Owner Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">Información del responsable</h3>
-            
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="owner_first_name">Nombres *</Label>
@@ -636,7 +652,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   required
                 />
               </div>
-              
               <div>
                 <Label htmlFor="owner_last_name">Apellidos *</Label>
                 <Input
@@ -647,7 +662,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   required
                 />
               </div>
-              
               <div>
                 <Label htmlFor="owner_age">Edad *</Label>
                 <Input
@@ -659,7 +673,6 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
                   required
                 />
               </div>
-              
               <div>
                 <Label htmlFor="owner_id">DPI (13 dígitos) *</Label>
                 <Input
@@ -686,9 +699,9 @@ export const AppointmentModal = ({ campaign, isOpen, onClose, onSuccess }: Appoi
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              className="flex-1 bg-gradient-warm hover:opacity-90" 
+            <Button
+              type="submit"
+              className="flex-1 bg-gradient-warm hover:opacity-90"
               disabled={loading}
             >
               {loading ? 'Agendando...' : 'Agendar Cita'}
